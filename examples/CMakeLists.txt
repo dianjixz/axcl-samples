@@ -1,6 +1,6 @@
 # AXERA is pleased to support the open source community by making ax-samples available.
 #
-# Copyright (c) 2022, AXERA Semiconductor (Shanghai) Co., Ltd. All rights reserved.
+# Copyright (c) 2024, Axera Semiconductor Co., Ltd. All rights reserved.
 #
 # Licensed under the BSD 3-Clause License (the "License"); you may not use this file except
 # in compliance with the License. You may obtain a copy of the License at
@@ -12,24 +12,29 @@
 # CONDITIONS OF ANY KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations under the License.
 #
-# Author: ls.wang
+# Author:
 #
+
+
+# Set axcl library
 if(NOT AXCL_DIR)
-    set(AXCL_DIR ${CMAKE_SOURCE_DIR}/axcl)
+    include_directories(/usr/include/axcl/)
+    link_directories(/usr/lib/axcl/)
+else()
+    include_directories(${AXCL_DIR}/include)
+    link_directories(${AXCL_DIR}/lib)    
 endif()
 
+
+# Set OpenCV library
 if(NOT OpenCV_DIR)
     set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/3rdparty/opencv-aarch64-linux/lib/cmake/opencv4)
 endif()
 
-
 find_package(OpenCV REQUIRED)
-
 include_directories(.)
-
 include_directories(${OpenCV_INCLUDE_DIRS})
 
-include_directories(${AXCL_DIR}/include)
-link_directories(${AXCL_DIR}/lib)
 
+# Add example files
 add_subdirectory(${CMAKE_SOURCE_DIR}/examples/axcl)
