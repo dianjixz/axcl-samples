@@ -36,16 +36,8 @@ git clone https://github.com/AXERA-TECH/axcl-samples.git
 通过 `apt install` 安装必要的编译工具
 
 ```
-sudo apt install build-essential cmake
-```
-
-#### 安装第三方依赖
-
-```
-cd axcl-samples
-mkdir 3rdparty
-wget https://github.com/AXERA-TECH/ax-samples/releases/download/v0.1/opencv-aarch64-linux-gnu-gcc-7.5.0.zip
-unzip opencv-aarch64-linux-gnu-gcc-7.5.0 -d ./3rdparty
+sudo apt update
+sudo apt install build-essential cmake libopencv-dev 
 ```
 
 #### 编译详情
