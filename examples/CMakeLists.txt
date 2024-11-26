@@ -27,9 +27,9 @@ endif()
 
 
 # Set OpenCV library
-if(NOT OpenCV_DIR)
-    set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/3rdparty/opencv-aarch64-linux/lib/cmake/opencv4)
-endif()
+#if(NOT OpenCV_DIR)
+#    set(OpenCV_DIR ${CMAKE_SOURCE_DIR}/3rdparty/opencv-aarch64-linux/lib/cmake/opencv4)
+#endif()
 
 find_package(OpenCV REQUIRED)
 include_directories(.)
