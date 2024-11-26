@@ -44,8 +44,8 @@ const float ANCHORS[18] = {4,5,  6,8,  10,12,              //# P3/8
 
 const int DEFAULT_LOOP_COUNT = 1;
 
-const float PROB_THRESHOLD = 0.45f;
-const float NMS_THRESHOLD = 0.45f;
+const float PROB_THRESHOLD = 0.2f;
+const float NMS_THRESHOLD = 0.5f;
 
 namespace ax
 {
