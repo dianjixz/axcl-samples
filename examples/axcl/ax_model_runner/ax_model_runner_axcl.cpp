@@ -494,25 +494,29 @@ int ax_runner_axcl::inference()
 
 int ax_runner_axcl::inference(int grpid)
 {
-    // timer tick;
-    // tick.start();
+    timer tick;
+    tick.start();
     if (_auto_sync_before_inference)
         for (size_t i = 0; i < mgroup_input_tensors[grpid].size(); i++)
             axclrtMemcpy((void *)mgroup_input_tensors[grpid][i].phyAddr, mgroup_input_tensors[grpid][i].pVirAddr, mgroup_input_tensors[grpid][i].nSize, AXCL_MEMCPY_HOST_TO_DEVICE);
-    // tick.stop();
-    // printf("axclrtMemcpy host->device time: %f ms\n", tick.cost());
-
+    tick.stop();
+    cost_host_to_device = tick.cost();
+    
+    tick.start();
     auto ret = axclrtEngineExecute(m_handle->handle, m_handle->context, grpid, m_handle->ios[grpid]);
     if (ret != 0)
     {
         fprintf(stderr, "axclrtEngineExecute failed. ret=0x%x\n", ret);
         return ret;
     }
-    // tick.start();
+    tick.stop();
+    cost_inference = tick.cost();
+
+    tick.start();
     if (_auto_sync_after_inference)
         for (size_t i = 0; i < mgroup_output_tensors[grpid].size(); i++)
             axclrtMemcpy(mgroup_output_tensors[grpid][i].pVirAddr, (void *)mgroup_output_tensors[grpid][i].phyAddr, mgroup_output_tensors[grpid][i].nSize, AXCL_MEMCPY_DEVICE_TO_HOST);
-    // tick.stop();
-    // printf("axclrtMemcpy device->host time: %f ms\n", tick.cost());
+    tick.stop();
+    cost_device_to_host = tick.cost();
     return 0;
 }

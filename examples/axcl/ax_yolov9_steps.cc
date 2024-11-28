@@ -110,9 +110,8 @@ namespace ax
         std::vector<float> time_costs(repeat, 0);
         for (int i = 0; i < repeat; ++i)
         {
-            timer tick;
             ret = runner.inference();
-            time_costs[i] = tick.cost();
+            time_costs[i] = runner.get_inference_time();
         }
 
         // 10. get result

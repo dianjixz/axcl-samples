@@ -41,11 +41,17 @@ public:
     bool _auto_sync_before_inference = true;
     bool _auto_sync_after_inference = true;
 
+    float cost_host_to_device = 0;
+    float cost_inference = 0;
+    float cost_device_to_host = 0;
+
 public:
     virtual int init(const char *model_file) = 0;
     virtual int init(char *model_buffer, size_t model_size) = 0;
 
     virtual void deinit() = 0;
+
+    float get_inference_time() { return cost_inference; }
 
     int get_num_inputs() { return minput_tensors.size(); };
     int get_num_outputs() { return moutput_tensors.size(); };
