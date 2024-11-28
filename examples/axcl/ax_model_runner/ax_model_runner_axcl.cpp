@@ -22,18 +22,7 @@ static void print_io_info(std::vector<ax_runner_tensor_t> &input, std::vector<ax
     {
         // print shape info,like [batchsize x channel x height x width]
         auto &info = input[i];
-        printf("    name: \e[1;32m%8s", info.sName.c_str());
-
-        std::string dt = "unknown";
-
-        printf(" \e[1;31m[%s] ", dt.c_str());
-
-        std::string ct = "unknown";
-
-        printf("\e[1;31m[%s]", ct.c_str());
-
-        printf(" \n        \e[1;31m");
-
+        printf("    name: \e[1;32m%8s \e[0m\n        \e[1;31m", info.sName.c_str());
         for (size_t s = 0; s < info.vShape.size(); s++)
         {
             printf("%d", info.vShape[s]);
