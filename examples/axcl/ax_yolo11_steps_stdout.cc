@@ -19,6 +19,17 @@
  * Author: QQC
  */
 
+
+
+/*
+
+ffmpeg -i input.mp4 -f rawvideo -pix_fmt rgb24 - | ./ax_yolo11_steps_stdout -m yolo11.axmodel -s 650x650 | ffmpeg -f rawvideo -pix_fmt rgb24 -s 1920x1080 -r 30 -i - -c:v libx264 -f rtsp rtsp://yourserver/app/stream
+
+*/
+
+
+
+
 #include <cstdio>
 #include <cstring>
 #include <numeric>
@@ -37,7 +48,7 @@
 
 const int DEFAULT_IMG_H = 640;
 const int DEFAULT_IMG_W = 640;
-
+std::array<int, 2> input_size;
 const char *CLASS_NAMES[] = {
     "person", "bicycle", "car", "motorcycle", "airplane", "bus", "train", "truck", "boat", "traffic light",
     "fire hydrant", "stop sign", "parking meter", "bench", "bird", "cat", "dog", "horse", "sheep", "cow",
@@ -70,20 +81,20 @@ namespace ax
         }
 
         detection::get_out_bbox(proposals, objects, NMS_THRESHOLD, input_h, input_w, mat.rows, mat.cols);
-        fprintf(stdout, "post process cost time:%.2f ms \n", timer_postprocess.cost());
-        fprintf(stdout, "--------------------------------------\n");
+        fprintf(stderr, "post process cost time:%.2f ms \n", timer_postprocess.cost());
+        fprintf(stderr, "--------------------------------------\n");
         auto total_time = std::accumulate(time_costs.begin(), time_costs.end(), 0.f);
         auto min_max_time = std::minmax_element(time_costs.begin(), time_costs.end());
-        fprintf(stdout,
+        fprintf(stderr,
                 "Repeat %d times, avg time %.2f ms, max_time %.2f ms, min_time %.2f ms\n",
                 (int)time_costs.size(),
                 total_time / (float)time_costs.size(),
                 *min_max_time.second,
                 *min_max_time.first);
-        fprintf(stdout, "--------------------------------------\n");
-        fprintf(stdout, "detection num: %zu\n", objects.size());
+        fprintf(stderr, "--------------------------------------\n");
+        fprintf(stderr, "detection num: %zu\n", objects.size());
 
-        detection::draw_objects(mat, objects, CLASS_NAMES, "yolo11_out");
+        detection::draw_objects(mat, objects, CLASS_NAMES, NULL);
     }
 
     bool run_model(const std::string &model, const std::vector<uint8_t> &data, const int &repeat, cv::Mat &mat, int input_h, int input_w)
@@ -96,30 +107,38 @@ namespace ax
             fprintf(stderr, "init ax model runner failed.\n");
             return false;
         }
-
-        // 2. insert input
-        memcpy(runner.get_input(0).pVirAddr, data.data(), data.size());
-        fprintf(stdout, "Engine push input is done. \n");
-        fprintf(stdout, "--------------------------------------\n");
-
-        // 8. warn up
-        for (int i = 0; i < 5; ++i)
+        std::vector<uint8_t> indata(input_size[0] * input_size[1] * 3, 0);
+        cv::Mat inmat(input_size[0], input_size[1], CV_8UC3);
+        while (std::cin.read(reinterpret_cast<char*>(inmat.data), inmat.step * inmat.rows))
         {
-            runner.inference();
+
+            common::get_input_data_letterbox(inmat, indata, input_size[0], input_size[1]);
+            // 2. insert input
+            memcpy(runner.get_input(0).pVirAddr, indata.data(), indata.size());
+            fprintf(stderr, "Engine push input is done. \n");
+            fprintf(stderr, "--------------------------------------\n");
+
+            // 8. warn up
+            for (int i = 0; i < 5; ++i)
+            {
+                runner.inference();
+            }
+
+            // 9. run model
+            std::vector<float> time_costs(repeat, 0);
+            for (int i = 0; i < repeat; ++i)
+            {
+                ret = runner.inference();
+                time_costs[i] = runner.get_inference_time();
+            }
+
+            // 10. get result
+            post_process(runner.get_outputs_ptr(0), runner.get_num_outputs(), inmat, input_w, input_h, time_costs);
+            std::cout.write(reinterpret_cast<char*>(inmat.data), inmat.step * inmat.rows);
+            std::cout.flush();
+            fprintf(stderr, "--------------------------------------\n");
         }
-
-        // 9. run model
-        std::vector<float> time_costs(repeat, 0);
-        for (int i = 0; i < repeat; ++i)
-        {
-            ret = runner.inference();
-            time_costs[i] = runner.get_inference_time();
-        }
-
-        // 10. get result
-        post_process(runner.get_outputs_ptr(0), runner.get_num_outputs(), mat, input_w, input_h, time_costs);
-        fprintf(stdout, "--------------------------------------\n");
-
+        
         runner.release();
         return 0;
     }
@@ -129,22 +148,16 @@ int main(int argc, char *argv[])
 {
     cmdline::parser cmd;
     cmd.add<std::string>("model", 'm', "joint file(a.k.a. joint model)", true, "");
-    cmd.add<std::string>("image", 'i', "image file", true, "");
     cmd.add<std::string>("size", 'g', "input_h, input_w", false, std::to_string(DEFAULT_IMG_H) + "," + std::to_string(DEFAULT_IMG_W));
-    cmd.add<int>("device", 'd', "device id", false, 0);
 
-    cmd.add<int>("repeat", 'r', "repeat count", false, DEFAULT_LOOP_COUNT);
     cmd.parse_check(argc, argv);
 
     // 0. get app args, can be removed from user's app
     auto model_file = cmd.get<std::string>("model");
-    auto image_file = cmd.get<std::string>("image");
-    auto device_id = cmd.get<int>("device");
 
     auto model_file_flag = utilities::file_exist(model_file);
-    auto image_file_flag = utilities::file_exist(image_file);
 
-    if (!model_file_flag | !image_file_flag)
+    if (!model_file_flag)
     {
         auto show_error = [](const std::string &kind, const std::string &value)
         {
@@ -155,17 +168,13 @@ int main(int argc, char *argv[])
         {
             show_error("model", model_file);
         }
-        if (!image_file_flag)
-        {
-            show_error("image", image_file);
-        }
 
         return -1;
     }
 
     auto input_size_string = cmd.get<std::string>("size");
 
-    std::array<int, 2> input_size = {DEFAULT_IMG_H, DEFAULT_IMG_W};
+    input_size = {DEFAULT_IMG_H, DEFAULT_IMG_W};
 
     auto input_size_flag = utilities::parse_string(input_size_string, input_size);
 
@@ -181,24 +190,22 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    auto repeat = cmd.get<int>("repeat");
 
     // 1. print args
-    fprintf(stdout, "--------------------------------------\n");
-    fprintf(stdout, "model file : %s\n", model_file.c_str());
-    fprintf(stdout, "image file : %s\n", image_file.c_str());
-    fprintf(stdout, "img_h, img_w : %d %d\n", input_size[0], input_size[1]);
-    fprintf(stdout, "--------------------------------------\n");
+    fprintf(stderr, "--------------------------------------\n");
+    fprintf(stderr, "model file : %s\n", model_file.c_str());
+    fprintf(stderr, "img_h, img_w : %d %d\n", input_size[0], input_size[1]);
+    fprintf(stderr, "--------------------------------------\n");
 
     // 2. read image & resize & transpose
     std::vector<uint8_t> image(input_size[0] * input_size[1] * 3, 0);
-    cv::Mat mat = cv::imread(image_file);
-    if (mat.empty())
-    {
-        fprintf(stderr, "Read image failed.\n");
-        return -1;
-    }
-    common::get_input_data_letterbox(mat, image, input_size[0], input_size[1]);
+    cv::Mat mat ;
+    // if (mat.empty())
+    // {
+    //     fprintf(stderr, "Read image failed.\n");
+    //     return -1;
+    // }
+    
 
     // 3. init axcl
     {
@@ -213,7 +220,7 @@ int main(int argc, char *argv[])
             fprintf(stderr, "Get AXCL device failed{0x%8x}, find total %d device.\n", ret, lst.num);
             return -1;
         }
-        if (const auto ret = axclrtSetDevice(lst.devices[device_id]); 0 != ret)
+        if (const auto ret = axclrtSetDevice(lst.devices[0]); 0 != ret)
         {
             fprintf(stderr, "Set AXCL device failed{0x%8x}.\n", ret);
             return -1;
@@ -228,7 +235,7 @@ int main(int argc, char *argv[])
 
     // 4. -  engine model
     {
-        ax::run_model(model_file, image, repeat, mat, input_size[0], input_size[1]);
+        ax::run_model(model_file, image, 1, mat, input_size[0], input_size[1]);
     }
 
     // 5. finalize
