@@ -20,6 +20,7 @@
 /*
 Usage example:
 ffmpeg -i input.mp4 -f rawvideo -s 640x640 -pix_fmt rgb24 - | ./ax_yolo11_steps_stdout -m yolo11.axmodel -s 640x640 -t RGB | ffmpeg -f rawvideo -pix_fmt rgb24 -s 640x640 -i - -c:v libx264 -f rtsp rtsp://yourserver/app/stream
+ffmpeg -i /dev/video0 -r 15 -f rawvideo -s 640x640 -pix_fmt rgb24 - 2>/dev/null | ./dist/ax_yolo11_steps_stdout -m ~/dist/static/yolo11x.axmodel -s 640x640 | ffplay -f rawvideo -pixel_format rgb24 -video_size 640x640 - 2>/dev/null
 
 Parameters:
 -m: Path to the YOLO11 model file (.axmodel)
@@ -28,8 +29,16 @@ Parameters:
 The program reads raw video frames from stdin, performs YOLO object detection,
 draws bounding boxes on the frames, and outputs the processed frames to stdout.
 */
+
+
 #include <cstdio>
 #include <cstring>
+
+#ifndef LOG_OUT_PROT
+#define LOG_OUT_PROT stderr
+#endif
+
+
 #include <numeric>
 #include <unordered_map>
 #include <stdexcept>
@@ -43,9 +52,6 @@ draws bounding boxes on the frames, and outputs the processed frames to stdout.
 #include <axcl.h>
 #include "ax_model_runner/ax_model_runner_axcl.hpp"
 
-#ifndef LOG_OUT_PROT
-#define LOG_OUT_PROT stderr
-#endif
 
 const int DEFAULT_IMG_H = 640;
 const int DEFAULT_IMG_W = 640;
@@ -132,7 +138,7 @@ void nv12_to_bgr(const uint8_t* nv12_data, cv::Mat& bgr, int width, int height) 
 namespace ax {
 
 void post_process(const ax_runner_tensor_t *output, const int nOutputSize, cv::Mat &mat, int input_w, int input_h,
-                  const std::vector<float> &time_costs)
+                  const std::vector<float> &time_costs, int orig_w, int orig_h)
 {
     std::vector<detection::Object> proposals;
     std::vector<detection::Object> objects;
@@ -145,7 +151,8 @@ void post_process(const ax_runner_tensor_t *output, const int nOutputSize, cv::M
                                                     NUM_CLASS);
     }
     
-    detection::get_out_bbox(proposals, objects, NMS_THRESHOLD, input_h, input_w, mat.rows, mat.cols);
+    // 这里检测框坐标会自动映射到 mat.rows, mat.cols 尺寸
+    detection::get_out_bbox(proposals, objects, NMS_THRESHOLD, input_h, input_w, orig_h, orig_w);
     
     fprintf(LOG_OUT_PROT, "post process cost time:%.2f ms \n", timer_postprocess.cost());
     fprintf(LOG_OUT_PROT, "--------------------------------------\n");
@@ -170,7 +177,6 @@ bool run_model(const std::string &model, const int &repeat, int input_h, int inp
         fprintf(stderr, "init ax model runner failed.\n");
         return false;
     }
-
     std::vector<uint8_t> indata(input_h * input_w * 3, 0);
     
     // Get original image dimensions from command line arguments
@@ -210,7 +216,7 @@ bool run_model(const std::string &model, const int &repeat, int input_h, int inp
     while (std::cin.read(reinterpret_cast<char *>(input_buffer.data()), expected_size)) {
         cv::Mat inmat;
         
-        // Handle different input types
+        // Handle different input types - 解析输入数据到原始尺寸
         switch (INPUT_TYPE) {
             case RGB_TYPE: {
                 // Create OpenCV Mat from RGB24 data
@@ -238,10 +244,10 @@ bool run_model(const std::string &model, const int &repeat, int input_h, int inp
             }
         }
         
-        // Create a copy for inference processing
+        // 创建用于推理的 640x640 图像
         cv::Mat inference_mat = inmat.clone();
         
-        // Prepare input data with letterbox for model input size
+        // Prepare input data with letterbox for model input size (640x640)
         common::get_input_data_letterbox(inference_mat, indata, input_h, input_w);
         
         // 2. insert input
@@ -261,10 +267,11 @@ bool run_model(const std::string &model, const int &repeat, int input_h, int inp
             time_costs[i] = runner.get_inference_time();
         }
         
-        // 4. get result and draw detections on the original image
-        post_process(runner.get_outputs_ptr(0), runner.get_num_outputs(), inmat, input_w, input_h, time_costs);
+        // 4. 在原始尺寸图像上进行后处理和绘制
+        // 注意：这里检测框会自动缩放到原始图像尺寸
+        post_process(runner.get_outputs_ptr(0), runner.get_num_outputs(), inmat, input_w, input_h, time_costs, orig_w, orig_h);
         
-        // Convert back to original format for output
+        // 5. 输出处理后的原始尺寸图像
         switch (INPUT_TYPE) {
             case RGB_TYPE: {
                 cv::Mat output_mat;
