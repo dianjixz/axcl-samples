@@ -35,6 +35,10 @@
  
  #include <axcl.h>
  #include "ax_model_runner/ax_model_runner_axcl.hpp"
+
+#ifndef LOG_OUT_PROT
+#define LOG_OUT_PROT stdout
+#endif
  
  const int DEFAULT_IMG_H = 640;
  const int DEFAULT_IMG_W = 640;
@@ -71,18 +75,18 @@
          }
  
          detection::get_out_bbox(proposals, objects, NMS_THRESHOLD, input_h, input_w, mat.rows, mat.cols);
-         fprintf(stdout, "post process cost time:%.2f ms \n", timer_postprocess.cost());
-         fprintf(stdout, "--------------------------------------\n");
+         fprintf(LOG_OUT_PROT, "post process cost time:%.2f ms \n", timer_postprocess.cost());
+         fprintf(LOG_OUT_PROT, "--------------------------------------\n");
          // Optional: Print timing stats less frequently or remove if too verbose per frame
          // auto total_time = std::accumulate(time_costs.begin(), time_costs.end(), 0.f);
          // auto min_max_time = std::minmax_element(time_costs.begin(), time_costs.end());
-         // fprintf(stdout,
+         // fprintf(LOG_OUT_PROT,
          //         "Avg time %.2f ms, max_time %.2f ms, min_time %.2f ms\n",
          //         total_time / (float)time_costs.size(),
          //         *min_max_time.second,
          //         *min_max_time.first);
-         fprintf(stdout, "detection num: %zu\n", objects.size());
-         fprintf(stdout, "--------------------------------------\n");
+         fprintf(LOG_OUT_PROT, "detection num: %zu\n", objects.size());
+         fprintf(LOG_OUT_PROT, "--------------------------------------\n");
  
          detection::draw_objects(mat, objects, CLASS_NAMES, NULL); // Changed window name
      }
@@ -183,11 +187,11 @@
      // auto repeat = cmd.get<int>("repeat"); // Removed repeat
  
      // 1. print args
-     fprintf(stdout, "--------------------------------------\n");
-     fprintf(stdout, "model file : %s\n", model_file.c_str());
-     fprintf(stdout, "video source : %s\n", video_source.c_str()); // Print video source
-     fprintf(stdout, "img_h, img_w : %d %d\n", input_size[0], input_size[1]);
-     fprintf(stdout, "--------------------------------------\n");
+     fprintf(LOG_OUT_PROT, "--------------------------------------\n");
+     fprintf(LOG_OUT_PROT, "model file : %s\n", model_file.c_str());
+     fprintf(LOG_OUT_PROT, "video source : %s\n", video_source.c_str()); // Print video source
+     fprintf(LOG_OUT_PROT, "img_h, img_w : %d %d\n", input_size[0], input_size[1]);
+     fprintf(LOG_OUT_PROT, "--------------------------------------\n");
  
      // 2. Open video capture
      cv::VideoCapture cap;
@@ -241,13 +245,13 @@
      std::vector<uint8_t> resized_image;
      resized_image.resize(input_size[0] * input_size[1] * 3); // Pre-allocate
  
-     fprintf(stdout, "Starting video processing. Press 'q' or 'ESC' to quit.\n");
+     fprintf(LOG_OUT_PROT, "Starting video processing. Press 'q' or 'ESC' to quit.\n");
  
      while (true)
      {
          cap >> frame;
          if (frame.empty()) {
-             fprintf(stdout, "End of video stream or error reading frame.\n");
+             fprintf(LOG_OUT_PROT, "End of video stream or error reading frame.\n");
              break;
          }
  
@@ -268,7 +272,7 @@
          char key = (char)cv::waitKey(1); // Wait for a short time (ms) or key press
          if (key == 27 || key == 'q' || key == 'Q') // ESC or 'q' key to exit
          {
-             fprintf(stdout, "Exit key pressed.\n");
+             fprintf(LOG_OUT_PROT, "Exit key pressed.\n");
              break;
          }
      }

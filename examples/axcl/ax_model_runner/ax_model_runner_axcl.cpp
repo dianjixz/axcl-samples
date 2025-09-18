@@ -7,6 +7,11 @@
 
 #include "utilities/timer.hpp"
 
+#ifndef LOG_OUT_PROT
+#define LOG_OUT_PROT stdout
+#endif
+
+
 typedef enum
 {
     AX_ENGINE_ABST_DEFAULT = 0,
@@ -17,38 +22,38 @@ typedef std::pair<AX_ENGINE_ALLOC_BUFFER_STRATEGY_T, AX_ENGINE_ALLOC_BUFFER_STRA
 
 static void print_io_info(std::vector<ax_runner_tensor_t> &input, std::vector<ax_runner_tensor_t> &output)
 {
-    printf("\ninput size: %ld\n", input.size());
+    fprintf(LOG_OUT_PROT, "\ninput size: %ld\n", input.size());
     for (size_t i = 0; i < input.size(); ++i)
     {
         // print shape info,like [batchsize x channel x height x width]
         auto &info = input[i];
-        printf("    name: \e[1;32m%8s \e[0m\n        \e[1;31m", info.sName.c_str());
+        fprintf(LOG_OUT_PROT, "    name: \e[1;32m%8s \e[0m\n        \e[1;31m", info.sName.c_str());
         for (size_t s = 0; s < info.vShape.size(); s++)
         {
-            printf("%d", info.vShape[s]);
+            fprintf(LOG_OUT_PROT, "%d", info.vShape[s]);
             if (s != info.vShape.size() - 1)
             {
-                printf(" x ");
+                fprintf(LOG_OUT_PROT," x ");
             }
         }
-        printf("\e[0m\n\n");
+        fprintf(LOG_OUT_PROT, "\e[0m\n\n");
     }
 
-    printf("\noutput size: %ld\n", output.size());
+    fprintf(LOG_OUT_PROT, "\noutput size: %ld\n", output.size());
     for (size_t i = 0; i < output.size(); ++i)
     {
         // print shape info,like [batchsize x channel x height x width]
         auto &info = output[i];
-        printf("    name: \e[1;32m%8s \e[0m\n        \e[1;31m", info.sName.c_str());
+        fprintf(LOG_OUT_PROT, "    name: \e[1;32m%8s \e[0m\n        \e[1;31m", info.sName.c_str());
         for (size_t s = 0; s < info.vShape.size(); s++)
         {
-            printf("%d", info.vShape[s]);
+            fprintf(LOG_OUT_PROT, "%d", info.vShape[s]);
             if (s != info.vShape.size() - 1)
             {
-                printf(" x ");
+                fprintf(LOG_OUT_PROT, " x ");
             }
         }
-        printf("\e[0m\n\n");
+        fprintf(LOG_OUT_PROT, "\e[0m\n\n");
     }
 }
 
@@ -250,7 +255,7 @@ int ax_runner_axcl::sub_init()
         fprintf(stderr, "axclrtEngineCreateContext failed.\n");
         return ret;
     }
-    fprintf(stdout, "axclrtEngineCreateContextt is done. \n");
+    fprintf(LOG_OUT_PROT, "axclrtEngineCreateContextt is done. \n");
 
     // 5. set io
 
@@ -260,7 +265,7 @@ int ax_runner_axcl::sub_init()
         fprintf(stderr, "axclrtEngineGetIOInfo failed.\n");
         return ret;
     }
-    fprintf(stdout, "axclrtEngineGetIOInfo is done. \n");
+    fprintf(LOG_OUT_PROT, "axclrtEngineGetIOInfo is done. \n");
 
     ret = axclrtEngineGetShapeGroupsCount(m_handle->io_info, &group_count);
     if (ret != 0)
@@ -347,9 +352,9 @@ int ax_runner_axcl::sub_init()
     }
     for (int grpid = 0; grpid < group_count; grpid++)
     {
-        printf("\ngrpid: %d\n", grpid);
+        fprintf(LOG_OUT_PROT,"\ngrpid: %d\n", grpid);
         print_io_info(mgroup_input_tensors[grpid], mgroup_output_tensors[grpid]);
-        printf("==================================================\n\n");
+        fprintf(LOG_OUT_PROT, "==================================================\n\n");
     }
 
     return ret;

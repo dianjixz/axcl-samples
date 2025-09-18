@@ -28,6 +28,11 @@
 #include <algorithm>
 #include <cmath>
 #include <string>
+
+#ifndef LOG_OUT_PROT
+#define LOG_OUT_PROT stdout
+#endif
+
 namespace detection
 {
     typedef struct
@@ -1814,7 +1819,7 @@ namespace detection
         {
             const Object& obj = objects[i];
 
-            fprintf(stdout, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f], %s\n", obj.label, obj.prob * 100, obj.rect.x,
+            fprintf(LOG_OUT_PROT, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f], %s\n", obj.label, obj.prob * 100, obj.rect.x,
                     obj.rect.y, obj.rect.x + obj.rect.width, obj.rect.y + obj.rect.height, class_names[obj.label]);
 
             cv::rectangle(image, obj.rect, COCO_COLORS[obj.label], thickness);
@@ -1854,7 +1859,7 @@ namespace detection
         {
             const Object& obj = objects[i];
 
-            fprintf(stdout, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f], person\n", obj.label, obj.prob * 100, obj.rect.x,
+            fprintf(LOG_OUT_PROT, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f], person\n", obj.label, obj.prob * 100, obj.rect.x,
                     obj.rect.y, obj.rect.x + obj.rect.width, obj.rect.y + obj.rect.height);
 
             cv::rectangle(image, obj.rect, cv::Scalar(255, 0, 0));
@@ -1926,7 +1931,7 @@ namespace detection
             const auto& color = colors[color_index % 80];
             color_index++;
 
-            fprintf(stdout, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f], %s\n", obj.label, obj.prob * 100, obj.rect.x,
+            fprintf(LOG_OUT_PROT, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f], %s\n", obj.label, obj.prob * 100, obj.rect.x,
                     obj.rect.y, obj.rect.x + obj.rect.width, obj.rect.y + obj.rect.height, class_names[obj.label]);
 
             mask(cv::Rect((int)obj.rect.x, (int)obj.rect.y, (int)objects[i].rect.width, (int)objects[i].rect.height)).setTo(color, objects[i].mask);
@@ -1964,7 +1969,7 @@ namespace detection
         for (size_t i = 0; i < objects.size(); i++)
         {
             const PalmObject& obj = objects[i];
-            //fprintf(stdout, "prob:%.2f, x0:%.2f, y0:%.2f, x1:%.2f, y1:%.2f, x2:%.2f, y2:%.2f, x3:%.2f, y3:%.2f\n", obj.prob,
+            //fprintf(LOG_OUT_PROT, "prob:%.2f, x0:%.2f, y0:%.2f, x1:%.2f, y1:%.2f, x2:%.2f, y2:%.2f, x3:%.2f, y3:%.2f\n", obj.prob,
             //        obj.vertices[0].x, obj.vertices[0].y, obj.vertices[1].x, obj.vertices[1].y, obj.vertices[2].x,
             //        obj.vertices[2].y, obj.vertices[3].x, obj.vertices[3].y);
             cv::line(image, obj.vertices[0], obj.vertices[1], cv::Scalar(0, 0, 255), 2, 8, 0);
@@ -1987,7 +1992,7 @@ namespace detection
         {
             const Object& obj = objects[i];
 
-            fprintf(stdout, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f]\n", obj.label, obj.prob * 100, obj.rect.x,
+            fprintf(LOG_OUT_PROT, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f]\n", obj.label, obj.prob * 100, obj.rect.x,
                     obj.rect.y, obj.rect.x + obj.rect.width, obj.rect.y + obj.rect.height);
 
             cv::rectangle(image, obj.rect, cv::Scalar(0, 255, 255), 2, 8, 0);
@@ -3048,7 +3053,7 @@ namespace detection
             for (size_t i = 0; i < objects.size(); i++){
                 const Object& obj = objects[i];
 
-                fprintf(stdout, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f], %s\n", obj.label, obj.prob * 100, obj.rect.x,
+                fprintf(LOG_OUT_PROT, "%2d: %3.0f%%, [%4.0f, %4.0f, %4.0f, %4.0f], %s\n", obj.label, obj.prob * 100, obj.rect.x,
                         obj.rect.y, obj.rect.x + obj.rect.width, obj.rect.y + obj.rect.height, class_names[obj.label]);
                 {
                     float xc = obj.rect.x;

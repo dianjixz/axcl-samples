@@ -26,6 +26,10 @@
 #include <algorithm>
 #include <cmath>
 
+#ifndef LOG_OUT_PROT
+#define LOG_OUT_PROT stderr
+#endif
+
 namespace yolo
 {
     enum
@@ -444,7 +448,7 @@ namespace yolo
             int w = bottom_top_blobs.w;
             int h = bottom_top_blobs.h;
             int channels = bottom_top_blobs.c;
-            //printf("%d %d %d\n", w, h, channels);
+            //fprintf(LOG_OUT_PROT, "%d %d %d\n", w, h, channels);
             const int channels_per_box = channels / m_num_box;
 
             // anchor coord + box score + num_class
@@ -453,17 +457,17 @@ namespace yolo
             size_t mask_offset = b * m_num_box;
             int net_w = (int)(m_anchors_scale[b] * w);
             int net_h = (int)(m_anchors_scale[b] * h);
-            //printf("%d %d\n", net_w, net_h);
+            //fprintf(LOG_OUT_PROT, "%d %d\n", net_w, net_h);
 
-            //printf("%d %d %d\n", w, h, channels);
+            //fprintf(LOG_OUT_PROT, "%d %d %d\n", w, h, channels);
             for (int pp = 0; pp < m_num_box; pp++)
             {
                 int p = pp * channels_per_box;
                 int biases_index = (int)(m_mask[pp + mask_offset]);
-                //printf("%d\n", biases_index);
+                //fprintf(LOG_OUT_PROT, "%d\n", biases_index);
                 const float bias_w = m_biases[biases_index * 2];
                 const float bias_h = m_biases[biases_index * 2 + 1];
-                //printf("%f %f\n", bias_w, bias_h);
+                //fprintf(LOG_OUT_PROT, "%f %f\n", bias_w, bias_h);
                 const float* xptr = bottom_top_blobs.channel(p);
                 const float* yptr = bottom_top_blobs.channel(p + 1);
                 const float* wptr = bottom_top_blobs.channel(p + 2);

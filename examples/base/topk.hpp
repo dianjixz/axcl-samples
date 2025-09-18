@@ -26,6 +26,9 @@
 
 #include "base/score.hpp"
 
+#ifndef LOG_OUT_PROT
+#define LOG_OUT_PROT stdout
+#endif
 
 namespace classification
 {
@@ -46,7 +49,7 @@ namespace classification
     {
         for (size_t i = 0; i < n; i++)
         {
-            fprintf(stdout, "%.4f, %d\n", array[i].score, array[i].id);
+            fprintf(LOG_OUT_PROT, "%.4f, %d\n", array[i].score, array[i].id);
         }
     }
 }

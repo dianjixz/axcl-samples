@@ -36,6 +36,10 @@
 #include <axcl.h>
 #include "ax_model_runner/ax_model_runner_axcl.hpp"
 
+#ifndef LOG_OUT_PROT
+#define LOG_OUT_PROT stdout
+#endif
+
 const int DEFAULT_IMG_H = 224;
 const int DEFAULT_IMG_W = 224;
 const int DEFAULT_LOOP_COUNT = 1;
@@ -55,13 +59,13 @@ namespace ax
             result[id].score = ptr[id];
         }
         classification::sort_score(result);
-        fprintf(stdout, "topk cost time:%.2f ms \n", timer_postprocess.cost());
+        fprintf(LOG_OUT_PROT, "topk cost time:%.2f ms \n", timer_postprocess.cost());
         classification::print_score(result, 5);
 
-        fprintf(stdout, "--------------------------------------\n");
+        fprintf(LOG_OUT_PROT, "--------------------------------------\n");
         auto total_time = std::accumulate(time_costs.begin(), time_costs.end(), 0.f);
         auto min_max_time = std::minmax_element(time_costs.begin(), time_costs.end());
-        fprintf(stdout,
+        fprintf(LOG_OUT_PROT,
                 "Repeat %d times, avg time %.2f ms, max_time %.2f ms, min_time %.2f ms\n",
                 (int)time_costs.size(),
                 total_time / (float)time_costs.size(),
@@ -82,8 +86,8 @@ namespace ax
 
         // 2. insert input
         memcpy(runner.get_input(0).pVirAddr, data.data(), data.size());
-        fprintf(stdout, "Engine push input is done. \n");
-        fprintf(stdout, "--------------------------------------\n");
+        fprintf(LOG_OUT_PROT, "Engine push input is done. \n");
+        fprintf(LOG_OUT_PROT, "--------------------------------------\n");
 
         // 8. warn up
         for (int i = 0; i < 5; ++i)
@@ -101,7 +105,7 @@ namespace ax
 
         // 10. get result
         post_process(runner.get_outputs_ptr(0), mat, time_costs);
-        fprintf(stdout, "--------------------------------------\n");
+        fprintf(LOG_OUT_PROT, "--------------------------------------\n");
 
         runner.release();
         return 0;
@@ -165,11 +169,11 @@ int main(int argc, char *argv[])
     auto repeat = cmd.get<int>("repeat");
 
     // 1. print args
-    fprintf(stdout, "--------------------------------------\n");
-    fprintf(stdout, "model file : %s\n", model_file.c_str());
-    fprintf(stdout, "image file : %s\n", image_file.c_str());
-    fprintf(stdout, "img_h, img_w : %d %d\n", input_size[0], input_size[1]);
-    fprintf(stdout, "--------------------------------------\n");
+    fprintf(LOG_OUT_PROT, "--------------------------------------\n");
+    fprintf(LOG_OUT_PROT, "model file : %s\n", model_file.c_str());
+    fprintf(LOG_OUT_PROT, "image file : %s\n", image_file.c_str());
+    fprintf(LOG_OUT_PROT, "img_h, img_w : %d %d\n", input_size[0], input_size[1]);
+    fprintf(LOG_OUT_PROT, "--------------------------------------\n");
 
     // 2. read image & resize & transpose
     std::vector<uint8_t> image(input_size[0] * input_size[1] * 3, 0);
